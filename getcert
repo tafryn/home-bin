@@ -1,0 +1,11 @@
+#!/bin/bash
+
+SEARCHTERM=$1
+COMMAND="ldapsearch -v -x -LLL (mail=$SEARCHTERM) userCertificate"
+
+RESPONSE=`$COMMAND 2>/dev/null`
+
+echo "-----BEGIN CERTIFICATE-----"
+echo $RESPONSE | sed -e "s/.*:: //" -e 's/\s//g' | fold -w 64
+echo "-----END CERTIFICATE-----"
+

@@ -1,0 +1,9 @@
+#!/bin/sh
+
+xset led 3
+sleep 0.2
+xset -led 3
+sleep 0.2
+xset led 3
+sleep 0.1
+xset -led 3
