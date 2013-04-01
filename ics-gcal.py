@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2
 # vim: set fileencoding=utf-8 :
 """
 ics-gcal.py (c) 2008, 2010 Matthew Ernisse <mernisse@ub3rgeek.net>
@@ -278,10 +278,11 @@ def uploadToGoogle(ics, email, password, calendar="default", reminder=30, \
   if not event:
     event = CalendarEventEntry()
 
-  startTime = getTime(ics.vevent.dtstart.value)
-  start = startTime.strftime("%Y-%m-%dT%H:%M:%S.000Z")
-  endTime = getTime(ics.vevent.dtend.value)
-  end = endTime.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+  tz = timezone(os.environ['TZ'])
+  startTime = getTime(ics.vevent.dtstart.value).astimezone(tz)
+  start = startTime.strftime("%Y-%m-%dT%H:%M:%S.000")
+  endTime = getTime(ics.vevent.dtend.value).astimezone(tz)
+  end = endTime.strftime("%Y-%m-%dT%H:%M:%S.000")
 
   event.title = atom.data.Title(text=ics.vevent.summary.value)
   description = getAttribute(ics, "description")
@@ -319,13 +320,13 @@ def uploadToGoogle(ics, email, password, calendar="default", reminder=30, \
   # set a reminder if forced or it's set in the calendar
   if forceReminder:
     for when in event.when:
-      when.reminder.append(Reminder(minutes=str(reminder)))
+      when.reminder.append(Reminder(minutes=str(reminder), method="alert"))
   elif 'valarm' in ics.vevent.contents:
     for when in event.when:
       if len(when.reminder) > 0:
         when.reminder[0].minutes = str(reminder)
       else:
-        when.reminder.append(Reminder(minutes=str(reminder)))
+        when.reminder.append(Reminder(minutes=str(reminder), method="alert"))
  
   newevent = None
   uri = 'https://www.google.com/calendar/feeds/%s/private/full' % calendar
@@ -475,7 +476,7 @@ def Main(argv = None):
     Usage()
     return 2
 
-  if not printonly and not fd or not email or not password:
+  if not printonly and (not fd or not email or not password):
     print("You did not specify the required arguments (username, password, and file)")
     Usage()
     return 2
