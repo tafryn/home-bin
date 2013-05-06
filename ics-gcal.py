@@ -143,7 +143,8 @@ def printCalendar(ics, event=None):
   print('End time:    %s' % end.strftime('%a, %b %d, %Y %I:%M %p (UTC%z)'))
   print('Location:    %s' % location)
   #print('Description:\n%s' % description.encode('utf-8', 'backslashreplace'))
-  print('Description:\n%s' % description)
+  print('Description:\n')
+  print(description)
   if event and currentstatus:
     print
     print('This event was already processed. The status is %s. Event details:' % currentstatus)
