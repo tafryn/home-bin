@@ -1,0 +1,40 @@
+#!/bin/bash
+
+if [ "$#" -lt 1 ]; then
+    vim
+    exit 0
+fi
+
+SOURCEFILE=$(basename $1)
+
+VIMRC="set backupdir=~/.vim-tmp,/var/tmp,/tmp\nset directory=~/.vim-tmp,/var/tmp,/tmp\n"
+
+ex --noplugin -u <(echo $VIMRC) -c "q" $1
+
+if [ $? -ne 0 ] \
+    && command -v tmux >/dev/null 2>&1 \
+    && command -v fuser >/dev/null 2>&1 \
+    && tmux list-sessions >/dev/null
+then
+    echo $1 "is already open."
+    FNAME=$HOME/.vim-tmp/$SOURCEFILE.swp
+    PID=`fuser $FNAME 2>/dev/null | awk '{print $1}'`
+    TTY=`ps -o tty= -p $PID`
+    PANE=`tmux list-panes -a -F '#{session_name}:#{window_index}.#{pane_index} #{pane_tty}' \
+          | egrep "$TTY" \
+          | awk '{print $1}'`
+    WINDOW=${PANE%.*}
+    if [ -n "$PANE" ]
+    then
+        tmux select-window -t $WINDOW
+        tmux select-pane -t $PANE
+        #echo $PID $TTY $PANE $WINDOW
+    else
+        echo $1 "not running in tmux."
+        echo "Opening..." $SOURCEFILE
+        vim $1
+    fi
+else
+    #echo "Opening..." $SOURCEFILE
+    vim $1
+fi
