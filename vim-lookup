@@ -1,7 +1,9 @@
 #!/bin/bash
 
+VIM=nvim
+
 if [ "$#" -lt 1 ]; then
-    vim
+    $VIM
     exit 0
 fi
 
@@ -17,7 +19,7 @@ if [ $? -ne 0 ] \
     && tmux list-sessions >/dev/null
 then
     echo $1 "is already open."
-    FNAME=$HOME/.vim-tmp/$SOURCEFILE.swp
+    FNAME=`find ~/.vim-tmp /var/tmp /tmp -name "$SOURCEFILE.swp" -uid $UID 2>/dev/null`
     PID=`fuser $FNAME 2>/dev/null | awk '{print $1}'`
     TTY=`ps -o tty= -p $PID`
     PANE=`tmux list-panes -a -F '#{session_name}:#{window_index}.#{pane_index} #{pane_tty}' \
@@ -32,9 +34,9 @@ then
     else
         echo $1 "not running in tmux."
         echo "Opening..." $SOURCEFILE
-        vim $1
+        $VIM $1
     fi
 else
     #echo "Opening..." $SOURCEFILE
-    vim $1
+    $VIM $1
 fi
