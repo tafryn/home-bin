@@ -7,6 +7,8 @@ fi
 
 dir="$(dirname "$0")"
 
+pkill xidlehook
+
 rm /tmp/xidlehook.sock
 
 read -r -d '' lock << EOF
