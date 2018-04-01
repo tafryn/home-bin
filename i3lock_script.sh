@@ -24,4 +24,4 @@ else
 fi
 
 # Turn the screen off after a delay if still locked
-sleep 5; pgrep i3lock && xset dpms force off
+sleep 60; pgrep i3lock && xset dpms force off
