@@ -7,18 +7,20 @@ if [ "$#" -lt 1 ]; then
     exit 0
 fi
 
-SOURCEFILE=$(basename $1)
+SOURCEFILE=$(basename "$@")
+
+echo $SOURCEFILE
 
 VIMRC="set backupdir=~/.vim-tmp,/var/tmp,/tmp\nset directory=~/.vim-tmp,/var/tmp,/tmp\n"
 
-ex --noplugin -u <(echo $VIMRC) -c "q" $1
+ex --noplugin -u <(echo $VIMRC) -c "q" "$@"
 
 if [ $? -ne 0 ] \
     && command -v tmux >/dev/null 2>&1 \
     && command -v fuser >/dev/null 2>&1 \
     && tmux list-sessions >/dev/null
 then
-    echo $1 "is already open."
+    echo $@ "is already open."
     FNAME=`find ~/.vim-tmp /var/tmp /tmp -name "$SOURCEFILE.swp" -uid $UID 2>/dev/null`
     PID=`fuser $FNAME 2>/dev/null | awk '{print $1}'`
     TTY=`ps -o tty= -p $PID`
@@ -32,11 +34,11 @@ then
         tmux select-pane -t $PANE
         #echo $PID $TTY $PANE $WINDOW
     else
-        echo $1 "not running in tmux."
+        echo $@ "not running in tmux."
         echo "Opening..." $SOURCEFILE
-        $VIM $1
+        $VIM "$@"
     fi
 else
     #echo "Opening..." $SOURCEFILE
-    $VIM $1
+    $VIM "$@"
 fi
