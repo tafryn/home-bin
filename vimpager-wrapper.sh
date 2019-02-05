@@ -5,7 +5,7 @@
 # if paging is not needed.
 
 if [ $# -ge 1 -a -f "$1" ]; then
-    INPUT=$(cat $1)
+    INPUT=$(cat "$@")
 else
     INPUT=$(cat "-")
 fi
@@ -14,8 +14,10 @@ TERM_LINES=$(tput lines)
 
 INPUT_LINES=$(echo -n "$INPUT" | wc -l | cut -d' ' -f1)
 
-if [ "$TERM_LINES" -gt "$INPUT_LINES" ]; then
-    echo -n "$INPUT" | sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g" | vimcat
+if [ "$INPUT_LINES" -eq "0" ]; then
+    exit 0
+elif [ "$TERM_LINES" -gt "$INPUT_LINES" ]; then
+    echo -n "$INPUT" | sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g" | vimcat -u ~/.vimpagerrc
 else
     echo -n "$INPUT" | vimpager
 fi
