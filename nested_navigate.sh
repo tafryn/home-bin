@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+# Profiling
+exec 3>&2 2> >(tee /tmp/sample-time.$$.log |
+                 sed -u 's/^.*$/now/' |
+                 date -f - +%s.%N >/tmp/sample-time.$$.tim)
+set -x
+
 # Helper functions
 contains_element () {
   local e match="$1"
@@ -19,21 +25,27 @@ index_of () {
     done
 }
 
-descendents_of () {
-    local children
-    children=$(ps -o pid= --ppid "$1")
+# This function uses inverted logic to allow for early returns when a matching
+# descendant is found.
+has_descendant () {
+    local children value
+    children=$(ps -o pid=,comm= --ppid "$1")
 
-    for pid in $children; do
-        descendents_of "$pid"
+    for pid_name in $children; do
+        if [[ "$pid_name" =~ $2 ]]; then
+            return 1
+        else
+            value+=has_descendant "$(expr "$pid_name" : '\([0-9]*\)')" "$2"
+        fi
     done
-
-    echo "$children"
+    
+    return "$value"
 }
 
-has_child () {
-    local pid=$1 process=$2
-    ps -h -o command -"$pid" | grep -q "$process"
-}
+# has_child () {
+#     local pid=$1 process=$2
+#     ps -h -o command -"$pid" | grep -q "$process"
+# }
 
 pane_at_edge() {
   direction=$1
@@ -119,11 +131,13 @@ contains_element "$1" "${NAVIGATION_DIRECTIONS[@]}" || exit 1
 DIRECTION="$1"
 
 # Check if terminal is focused
-FOCUSED_CLASS_NAMES=$(xprop -id "$(xprop -root 32x '\t$0' _NET_ACTIVE_WINDOW | cut -f 2)" WM_CLASS | grep -o '".*"' | tr -d '",')
+ACTIVE_WINDOW_ID=$(xprop -root 32x '\t$0' _NET_ACTIVE_WINDOW | cut -f 2)
 
-FOCUSED_TITLE=$(xprop -id "$(xprop -root 32x '\t$0' _NET_ACTIVE_WINDOW | cut -f 2)" _NET_WM_NAME | grep -o '".*"' | tr -d '",')
+FOCUSED_CLASS_NAMES=$(xprop -id "$ACTIVE_WINDOW_ID" WM_CLASS | grep -o '".*"' | tr -d '",')
 
-FOCUSED_PID=$(xprop -id "$(xprop -root 32x '\t$0' _NET_ACTIVE_WINDOW | cut -f 2)" _NET_WM_PID | grep -o '[[:digit:]]\+')
+FOCUSED_TITLE=$(xprop -id "$ACTIVE_WINDOW_ID" _NET_WM_NAME | grep -o '".*"' | tr -d '",')
+
+FOCUSED_PID=$(xprop -id "$ACTIVE_WINDOW_ID" _NET_WM_PID | grep -o '[[:digit:]]\+')
 
 for class_name in $FOCUSED_CLASS_NAMES; do
     if contains_element "$class_name" "${TERMINAL_CLASS_NAMES[@]}"; then
@@ -135,18 +149,37 @@ done
 TMUX_IN_FOCUSED_TERMINAL=false
 TYPE=i3
 
-if $TERMINAL_FOCUSED; then
-    for child in $(descendents_of "$FOCUSED_PID"); do
-        if has_child "$child" "tmux"; then
-            TMUX_IN_FOCUSED_TERMINAL=true
+# if $TERMINAL_FOCUSED; then
+#     for child in $(descendents_of "$FOCUSED_PID"); do
+#         if has_child "$child" "tmux"; then
+#             TMUX_IN_FOCUSED_TERMINAL=true
 
-            if pane_at_edge "$DIRECTION"; then
-                TYPE=i3
-            else
-                TYPE=tmux
-            fi
+#             if pane_at_edge "$DIRECTION"; then
+#                 TYPE=i3
+#             else
+#                 TYPE=tmux
+#             fi
+#             break
+#         fi
+#     done
+
+# 	if echo "$FOCUSED_TITLE" | grep -q VIM && ! $VIM_CALL; then
+#         TYPE=vim
+# 	fi
+# else
+# 	TYPE=i3
+# fi
+
+if $TERMINAL_FOCUSED; then
+    if ! has_descendant "$FOCUSED_PID" "tmux"; then
+        TMUX_IN_FOCUSED_TERMINAL=true
+
+        if pane_at_edge "$DIRECTION"; then
+            TYPE=i3
+        else
+            TYPE=tmux
         fi
-    done
+    fi
 
 	if echo "$FOCUSED_TITLE" | grep -q VIM && ! $VIM_CALL; then
         TYPE=vim
@@ -154,6 +187,24 @@ if $TERMINAL_FOCUSED; then
 else
 	TYPE=i3
 fi
+
+# if $TERMINAL_FOCUSED; then
+#     if pstree -p "$FOCUSED_PID" | grep -q "tmux"; then
+#         TMUX_IN_FOCUSED_TERMINAL=true
+
+#         if pane_at_edge "$DIRECTION"; then
+#             TYPE=i3
+#         else
+#             TYPE=tmux
+#         fi
+#     fi
+
+# 	if echo "$FOCUSED_TITLE" | grep -q VIM && ! $VIM_CALL; then
+#         TYPE=vim
+# 	fi
+# else
+# 	TYPE=i3
+# fi
 
 contains_element "$TYPE" "${NAVIGATION_TYPES[@]}" || exit 1
 
@@ -173,3 +224,6 @@ vim)
     fi
 	;;
 esac
+
+set +x
+exec 2>&3 3>&-
