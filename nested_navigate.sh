@@ -50,11 +50,6 @@ has_descendant () {
     ! has_no_descendant "$1" "$2"
 }
 
-# has_child () {
-#     local pid=$1 process=$2
-#     ps -h -o command -"$pid" | grep -q "$process"
-# }
-
 pane_at_edge() {
     direction=$1
 
@@ -91,16 +86,6 @@ pane_at_edge() {
         at_edge=$(( active_coord <= test_coord ? 0 : 1 ))
     fi;
     return $at_edge
-}
-
-select_pane_no_wrap() {
-    direction=$1
-    at_edge=$(pane_at_edge "$direction")
-    if [ "$at_edge" = 0 ] ; then
-        tmux select-pane "-$direction"
-    else
-        :
-    fi
 }
 
 # Variable setup
