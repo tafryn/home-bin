@@ -27,7 +27,7 @@ index_of () {
 
 # This function uses inverted logic to allow for early returns when a matching
 # descendant is found.
-has_descendant () {
+has_no_descendant () {
     local children value
     children=$(ps -o pid=,comm= --ppid "$1")
 
@@ -35,11 +35,15 @@ has_descendant () {
         if [[ "$pid_name" =~ $2 ]]; then
             return 1
         else
-            value+=has_descendant "$(expr "$pid_name" : '\([0-9]*\)')" "$2"
+            value+=has_no_descendant "$(expr "$pid_name" : '\([0-9]*\)')" "$2"
         fi
     done
     
     return "$value"
+}
+
+has_descendant () {
+    ! has_no_descendant "$1" "$2"
 }
 
 # has_child () {
@@ -133,45 +137,31 @@ DIRECTION="$1"
 # Check if terminal is focused
 ACTIVE_WINDOW_ID=$(xprop -root 32x '\t$0' _NET_ACTIVE_WINDOW | cut -f 2)
 
-FOCUSED_CLASS_NAMES=$(xprop -id "$ACTIVE_WINDOW_ID" WM_CLASS | grep -o '".*"' | tr -d '",')
+# ACTIVE_WINDOW_INFO=$(xprop -id "$ACTIVE_WINDOW_ID" WM_CLASS _NET_WM_NAME _NET_WM_PID)
+# FOCUSED_CLASS_NAMES=$(echo "$ACTIVE_WINDOW_INFO" | head -n 1 | grep -o '".*"' | tr -d '",')
+# FOCUSED_TITLE=$(echo "$ACTIVE_WINDOW_INFO" | head -n 2 | tail -n 1 | grep -o '".*"' | tr -d '",')
+# FOCUSED_PID=$(echo "$ACTIVE_WINDOW_INFO" | tail -n 1 | grep -o '[[:digit:]]\+')
 
-FOCUSED_TITLE=$(xprop -id "$ACTIVE_WINDOW_ID" _NET_WM_NAME | grep -o '".*"' | tr -d '",')
+# readarray -n 3 XPROP_LINES< <(xprop -id "$ACTIVE_WINDOW_ID" WM_CLASS _NET_WM_NAME _NET_WM_PID); \
+#     FOCUSED_CLASS_NAMES=$(echo "${XPROP_LINES[0]}" | grep -o '".*"' | tr -d '",') \
+#     FOCUSED_TITLE=$(echo "${XPROP_LINES[1]}" | grep -o '".*"' | tr -d '",') \
+#     FOCUSED_PID=$(echo "${XPROP_LINES[2]}" | grep -o '[[:digit:]]\+')
 
-FOCUSED_PID=$(xprop -id "$ACTIVE_WINDOW_ID" _NET_WM_PID | grep -o '[[:digit:]]\+')
+readarray -n 3 XPROP_LINES< <(xprop -id "$ACTIVE_WINDOW_ID" WM_CLASS _NET_WM_NAME _NET_WM_PID); \
+    FOCUSED_CLASS_NAME=$([[ "${XPROP_LINES[0]}" =~ \"([^\"]+)\" ]]; echo "${BASH_REMATCH[1]}") \
+    FOCUSED_TITLE=$([[ "${XPROP_LINES[1]}" =~ \"([^\"]+)\" ]]; echo "${BASH_REMATCH[1]}") \
+    FOCUSED_PID=$([[ "${XPROP_LINES[2]}" =~ ([[:digit:]]+) ]]; echo "${BASH_REMATCH[1]}")
 
-for class_name in $FOCUSED_CLASS_NAMES; do
-    if contains_element "$class_name" "${TERMINAL_CLASS_NAMES[@]}"; then
-        TERMINAL_FOCUSED=true
-    fi
-done
+if contains_element "$FOCUSED_CLASS_NAME" "${TERMINAL_CLASS_NAMES[@]}"; then
+    TERMINAL_FOCUSED=true
+fi
 
 # Determine navigation type
 TMUX_IN_FOCUSED_TERMINAL=false
 TYPE=i3
 
-# if $TERMINAL_FOCUSED; then
-#     for child in $(descendents_of "$FOCUSED_PID"); do
-#         if has_child "$child" "tmux"; then
-#             TMUX_IN_FOCUSED_TERMINAL=true
-
-#             if pane_at_edge "$DIRECTION"; then
-#                 TYPE=i3
-#             else
-#                 TYPE=tmux
-#             fi
-#             break
-#         fi
-#     done
-
-# 	if echo "$FOCUSED_TITLE" | grep -q VIM && ! $VIM_CALL; then
-#         TYPE=vim
-# 	fi
-# else
-# 	TYPE=i3
-# fi
-
 if $TERMINAL_FOCUSED; then
-    if ! has_descendant "$FOCUSED_PID" "tmux"; then
+    if has_descendant "$FOCUSED_PID" "tmux"; then
         TMUX_IN_FOCUSED_TERMINAL=true
 
         if pane_at_edge "$DIRECTION"; then
@@ -187,24 +177,6 @@ if $TERMINAL_FOCUSED; then
 else
 	TYPE=i3
 fi
-
-# if $TERMINAL_FOCUSED; then
-#     if pstree -p "$FOCUSED_PID" | grep -q "tmux"; then
-#         TMUX_IN_FOCUSED_TERMINAL=true
-
-#         if pane_at_edge "$DIRECTION"; then
-#             TYPE=i3
-#         else
-#             TYPE=tmux
-#         fi
-#     fi
-
-# 	if echo "$FOCUSED_TITLE" | grep -q VIM && ! $VIM_CALL; then
-#         TYPE=vim
-# 	fi
-# else
-# 	TYPE=i3
-# fi
 
 contains_element "$TYPE" "${NAVIGATION_TYPES[@]}" || exit 1
 
