@@ -8,10 +8,10 @@ set -x
 
 # Helper functions
 contains_element () {
-  local e match="$1"
-  shift
-  for e; do [[ "$e" == "$match" ]] && return 0; done
-  return 1
+    local e match="$1"
+    shift
+    for e; do [[ "$e" == "$match" ]] && return 0; done
+    return 1
 }
 
 index_of () {
@@ -28,18 +28,22 @@ index_of () {
 # This function uses inverted logic to allow for early returns when a matching
 # descendant is found.
 has_no_descendant () {
-    local children value
+    local children value=0
     children=$(ps -o pid=,comm= --ppid "$1")
 
     for pid_name in $children; do
         if [[ "$pid_name" =~ $2 ]]; then
             return 1
         else
-            value+=has_no_descendant "$([[ "$pid_name" =~ [[:digit:]]* ]]; echo "${BASH_REMATCH[*]}")" "$2"
+            has_no_descendant "$([[ "$pid_name" =~ [[:digit:]]* ]]; echo "${BASH_REMATCH[*]}")" "$2"
+            value=$((value+$?))
+            if [[ $value -gt 0 ]]; then
+                break
+            fi
         fi
     done
     
-    return "$value"
+    return $value
 }
 
 has_descendant () {
@@ -52,51 +56,51 @@ has_descendant () {
 # }
 
 pane_at_edge() {
-  direction=$1
+    direction=$1
 
-  case "$direction" in
-     "U") 
-       coord='top'
-       op='<='
-     ;;
-     "D")
-       coord='bottom'
-       op='>='
-     ;;
-     "L")
-       coord='left'
-       op='<='
-     ;;
-     "R")
-       coord='right'
-       op='>='
-     ;;
-  esac
+    case "$direction" in
+        "U") 
+        coord='top'
+        op='<='
+        ;;
+        "D")
+        coord='bottom'
+        op='>='
+        ;;
+        "L")
+        coord='left'
+        op='<='
+        ;;
+        "R")
+        coord='right'
+        op='>='
+        ;;
+    esac
 
-  cmd="#{pane_id}:#{pane_$coord}:#{?pane_active,_active_,_no_}"
-  panes=$(tmux list-panes -F "$cmd")
-  active_pane=$([[ "$panes" =~ [[:alnum:][:punct:]]*active ]]; echo "${BASH_REMATCH[*]}")
-  active_coord=$([[ "$active_pane" =~ :([[:digit:]]*): ]]; echo "${BASH_REMATCH[1]}")
-  coords=$(echo "$panes" | cut -d: -f2)
+    cmd="#{pane_id}:#{pane_$coord}:#{?pane_active,_active_,_no_}"
+    panes=$(tmux list-panes -F "$cmd")
+    active_pane=$([[ "$panes" =~ [[:alnum:][:punct:]]*active ]]; echo "${BASH_REMATCH[*]}")
+    active_coord=$([[ "$active_pane" =~ :([[:digit:]]*): ]]; echo "${BASH_REMATCH[1]}")
+    coords=$(echo "$panes" | cut -d: -f2)
 
-  if [ "$op" == ">=" ]; then
-    test_coord=$(echo "$coords" | sort -nr | head -n1)
-    at_edge=$(( active_coord >= test_coord ? 0 : 1 ))
-  else
-    test_coord=$(echo "$coords" | sort -n | head -n1)
-    at_edge=$(( active_coord <= test_coord ? 0 : 1 ))
-  fi;
-  return $at_edge
+    if [ "$op" == ">=" ]; then
+        test_coord=$(echo "$coords" | sort -nr | head -n1)
+        at_edge=$(( active_coord >= test_coord ? 0 : 1 ))
+    else
+        test_coord=$(echo "$coords" | sort -n | head -n1)
+        at_edge=$(( active_coord <= test_coord ? 0 : 1 ))
+    fi;
+    return $at_edge
 }
 
 select_pane_no_wrap() {
-  direction=$1
-  at_edge=$(pane_at_edge "$direction")
-  if [ "$at_edge" = 0 ] ; then
-    tmux select-pane "-$direction"
-  else
-    :
-  fi
+    direction=$1
+    at_edge=$(pane_at_edge "$direction")
+    if [ "$at_edge" = 0 ] ; then
+        tmux select-pane "-$direction"
+    else
+        :
+    fi
 }
 
 # Variable setup
