@@ -35,7 +35,7 @@ has_no_descendant () {
         if [[ "$pid_name" =~ $2 ]]; then
             return 1
         else
-            value+=has_no_descendant "$(expr "$pid_name" : '\([0-9]*\)')" "$2"
+            value+=has_no_descendant "$([[ "$pid_name" =~ [[:digit:]]* ]]; echo "${BASH_REMATCH[*]}")" "$2"
         fi
     done
     
@@ -75,9 +75,8 @@ pane_at_edge() {
 
   cmd="#{pane_id}:#{pane_$coord}:#{?pane_active,_active_,_no_}"
   panes=$(tmux list-panes -F "$cmd")
-  active_pane=$(echo "$panes" | grep _active_)
-  # active_pane_id=$(echo "$active_pane" | cut -d: -f1)
-  active_coord=$(echo "$active_pane" | cut -d: -f2)
+  active_pane=$([[ "$panes" =~ [[:alnum:][:punct:]]*active ]]; echo "${BASH_REMATCH[*]}")
+  active_coord=$([[ "$active_pane" =~ :([[:digit:]]*): ]]; echo "${BASH_REMATCH[1]}")
   coords=$(echo "$panes" | cut -d: -f2)
 
   if [ "$op" == ">=" ]; then
@@ -137,16 +136,6 @@ DIRECTION="$1"
 # Check if terminal is focused
 ACTIVE_WINDOW_ID=$(xprop -root 32x '\t$0' _NET_ACTIVE_WINDOW | cut -f 2)
 
-# ACTIVE_WINDOW_INFO=$(xprop -id "$ACTIVE_WINDOW_ID" WM_CLASS _NET_WM_NAME _NET_WM_PID)
-# FOCUSED_CLASS_NAMES=$(echo "$ACTIVE_WINDOW_INFO" | head -n 1 | grep -o '".*"' | tr -d '",')
-# FOCUSED_TITLE=$(echo "$ACTIVE_WINDOW_INFO" | head -n 2 | tail -n 1 | grep -o '".*"' | tr -d '",')
-# FOCUSED_PID=$(echo "$ACTIVE_WINDOW_INFO" | tail -n 1 | grep -o '[[:digit:]]\+')
-
-# readarray -n 3 XPROP_LINES< <(xprop -id "$ACTIVE_WINDOW_ID" WM_CLASS _NET_WM_NAME _NET_WM_PID); \
-#     FOCUSED_CLASS_NAMES=$(echo "${XPROP_LINES[0]}" | grep -o '".*"' | tr -d '",') \
-#     FOCUSED_TITLE=$(echo "${XPROP_LINES[1]}" | grep -o '".*"' | tr -d '",') \
-#     FOCUSED_PID=$(echo "${XPROP_LINES[2]}" | grep -o '[[:digit:]]\+')
-
 readarray -n 3 XPROP_LINES< <(xprop -id "$ACTIVE_WINDOW_ID" WM_CLASS _NET_WM_NAME _NET_WM_PID); \
     FOCUSED_CLASS_NAME=$([[ "${XPROP_LINES[0]}" =~ \"([^\"]+)\" ]]; echo "${BASH_REMATCH[1]}") \
     FOCUSED_TITLE=$([[ "${XPROP_LINES[1]}" =~ \"([^\"]+)\" ]]; echo "${BASH_REMATCH[1]}") \
@@ -171,7 +160,7 @@ if $TERMINAL_FOCUSED; then
         fi
     fi
 
-	if echo "$FOCUSED_TITLE" | grep -q VIM && ! $VIM_CALL; then
+	if [[ "$FOCUSED_TITLE" =~ VIM ]] && ! $VIM_CALL; then
         TYPE=vim
 	fi
 else
@@ -180,7 +169,7 @@ fi
 
 contains_element "$TYPE" "${NAVIGATION_TYPES[@]}" || exit 1
 
-
+# Run navigation command
 case "$TYPE" in
 i3)
     i3-msg -t run_command focus "${LONG_NAVIGATION_DIRECTIONS[$(index_of "$DIRECTION" "${NAVIGATION_DIRECTIONS[@]}")]}" >/dev/null
@@ -197,5 +186,6 @@ vim)
 	;;
 esac
 
+# Profiling
 set +x
 exec 2>&3 3>&-
