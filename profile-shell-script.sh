@@ -1,19 +1,18 @@
 #!/usr/bin/env bash
 
-# Profiling
-exec 3>&2 2> >(tee /tmp/sample-time.$$.log |
-                 sed -u 's/^.*$/now/' |
-                 date -f - +%s.%N >/tmp/sample-time.$$.tim)
-
 OPTIND=1
 SHOW_COLOR=false
+DELETE_LOGS=false
 THRESHOLD="0.0005"
 
-while getopts "ct:" opt; do
+while getopts "cDt:" opt; do
 	case "$opt" in
 	c)
 		SHOW_COLOR=true
 		;;
+    D)
+        DELETE_LOGS=true
+        ;;
 	t)
 		THRESHOLD=$OPTARG
 		;;
@@ -23,6 +22,11 @@ while getopts "ct:" opt; do
 done
 
 shift $((OPTIND-1))
+
+if $DELETE_LOGS; then
+    rm /tmp/sample-time*
+    exit 0
+fi
 
 if $SHOW_COLOR; then
 	COLOR_CMD="awk -v threshold=$THRESHOLD "
@@ -35,6 +39,10 @@ fi
 SCRIPT="$1"
 shift
 
+# Profiling
+exec 3>&2 2> >(tee /tmp/sample-time.$$.log |
+                 sed -u 's/^.*$/now/' |
+                 date -f - +%s.%N >/tmp/sample-time.$$.tim)
 set -x
 
 # shellcheck source=/dev/null
