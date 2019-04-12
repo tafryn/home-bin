@@ -3,15 +3,19 @@
 OPTIND=1
 SHOW_COLOR=false
 DELETE_LOGS=false
+REDISPLAY=false
 THRESHOLD="0.0005"
 
-while getopts "cDt:" opt; do
+while getopts "cDrt:" opt; do
 	case "$opt" in
 	c)
 		SHOW_COLOR=true
 		;;
     D)
         DELETE_LOGS=true
+        ;;
+    r)
+        REDISPLAY=true
         ;;
 	t)
 		THRESHOLD=$OPTARG
@@ -39,18 +43,20 @@ fi
 SCRIPT="$1"
 shift
 
-# Profiling
-exec 3>&2 2> >(tee /tmp/sample-time.$$.log |
-                 sed -u 's/^.*$/now/' |
-                 date -f - +%s.%N >/tmp/sample-time.$$.tim)
-set -x
+if ! $REDISPLAY; then
+    # Profiling
+    exec 3>&2 2> >(tee /tmp/sample-time.$$.log |
+                    sed -u 's/^.*$/now/' |
+                    date -f - +%s.%N >/tmp/sample-time.$$.tim)
+    set -x
 
-# shellcheck source=/dev/null
-source "$SCRIPT"
+    # shellcheck source=/dev/null
+    source "$SCRIPT"
 
-# Profiling
-set +x
-exec 2>&3 3>&-
+    # Profiling
+    set +x
+    exec 2>&3 3>&-
+fi
 
 readarray -n 2 FILE_NAMES< <(find /tmp -type f -name "sample-time*" -printf '%T@ %p\n' 2>/dev/null \
 	| sort -n | tail -2 | cut -f2- -d" "); \
