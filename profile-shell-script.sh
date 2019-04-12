@@ -62,8 +62,8 @@ paste <(
         crt=000000000$((${tim//.}-10#0$last))
         printf "%12.9f\n" ${crt:0:${#crt}-9}.${crt:${#crt}-9}
         last=${tim//.}
-      done < "$TIME_FILE"
-  ) "$LOG_FILE" | eval $COLOR_CMD
+    done < <(tail -n +2 "$TIME_FILE")
+    ) <(head -n -1 "$LOG_FILE") | eval $COLOR_CMD
 
 printf "\033[0m"
 
