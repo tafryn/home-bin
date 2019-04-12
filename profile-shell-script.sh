@@ -27,7 +27,7 @@ shift $((OPTIND-1))
 if $SHOW_COLOR; then
 	COLOR_CMD="awk -v threshold=$THRESHOLD "
 	# shellcheck disable=SC2016
-	COLOR_CMD+=''\''{if ($1 > threshold) print "\033[0;31m" $0; else print "\033[0m" $0; fi;}'\'''
+	COLOR_CMD+=''\''{if ($1 > threshold) print "\033[1;31m" $0; else print "\033[0m" $0; fi;}'\'''
 else
 	COLOR_CMD='cat'
 fi
