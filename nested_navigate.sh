@@ -90,7 +90,7 @@ pane_at_edge() {
 
 # Variable setup
 
-TERMINAL_CLASS_NAMES=(xterm URxvt Alacritty Gnome-terminal konsole)
+TERMINAL_CLASS_NAMES=(Alacritty Gnome-terminal konsole URxvt xterm)
 
 NAVIGATION_DIRECTIONS=(L D U R)
 
