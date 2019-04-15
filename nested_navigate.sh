@@ -1,11 +1,5 @@
 #!/usr/bin/env bash
 
-# Profiling
-exec 3>&2 2> >(tee /tmp/sample-time.$$.log |
-                 sed -u 's/^.*$/now/' |
-                 date -f - +%s.%N >/tmp/sample-time.$$.tim)
-set -x
-
 # Helper functions
 contains_element () {
     local e match="$1"
@@ -25,29 +19,21 @@ index_of () {
     done
 }
 
-# This function uses inverted logic to allow for early returns when a matching
-# descendant is found.
-has_no_descendant () {
-    local children value=0
+has_descendant () {
+    local children
     children=$(ps -o pid=,comm= --ppid "$1")
 
-    for pid_name in $children; do
-        if [[ "$pid_name" =~ $2 ]]; then
-            return 1
+    for pid_comm in $children; do
+        if [[ "$pid_comm" =~ $2 ]]; then
+            return 0
         else
-            has_no_descendant "$([[ "$pid_name" =~ [[:digit:]]* ]]; echo "${BASH_REMATCH[*]}")" "$2"
-            value=$((value+$?))
-            if [[ $value -gt 0 ]]; then
-                break
+            if has_no_descendant "$([[ "$pid_comm" =~ [[:digit:]]* ]]; echo "${BASH_REMATCH[*]}")" "$2"; then
+                return 0
             fi
         fi
     done
     
-    return $value
-}
-
-has_descendant () {
-    ! has_no_descendant "$1" "$2"
+    return 1
 }
 
 pane_at_edge() {
@@ -55,20 +41,20 @@ pane_at_edge() {
 
     case "$direction" in
         "U") 
-        coord='top'
-        op='<='
+            coord='top'
+            op='<='
         ;;
         "D")
-        coord='bottom'
-        op='>='
+            coord='bottom'
+            op='>='
         ;;
         "L")
-        coord='left'
-        op='<='
+            coord='left'
+            op='<='
         ;;
         "R")
-        coord='right'
-        op='>='
+            coord='right'
+            op='>='
         ;;
     esac
 
@@ -174,7 +160,3 @@ vim)
     fi
 	;;
 esac
-
-# Profiling
-set +x
-exec 2>&3 3>&-
