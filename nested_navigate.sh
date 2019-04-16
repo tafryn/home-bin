@@ -156,6 +156,7 @@ vim)
     if $TMUX_IN_FOCUSED_TERMINAL; then
         tmux send-keys C-"$(echo "$DIRECTION" | tr 'LDUR' 'hjkl')"
     else
+        xdotool keyup "$(echo "$DIRECTION" | tr 'LDUR' 'dhtn')" # dvorak shortcuts
         xdotool key --clearmodifiers --window \""$(xdotool getactivewindow)"\" ctrl+"$(echo "$DIRECTION" | tr 'LDUR' 'hjkl')"
     fi
 	;;
