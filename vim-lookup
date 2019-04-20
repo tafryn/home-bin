@@ -3,7 +3,7 @@
 VIM=nvim
 
 if [ "$#" -lt 1 ]; then
-    $VIM
+    exec $VIM
     exit 0
 fi
 
@@ -36,9 +36,9 @@ then
     else
         echo $@ "not running in tmux."
         echo "Opening..." $SOURCEFILE
-        $VIM "$@"
+        exec $VIM "$@"
     fi
 else
     #echo "Opening..." $SOURCEFILE
-    $VIM "$@"
+    exec $VIM "$@"
 fi
