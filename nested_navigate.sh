@@ -27,7 +27,7 @@ has_descendant () {
         if [[ "$pid_comm" =~ $2 ]]; then
             return 0
         else
-            if has_no_descendant "$([[ "$pid_comm" =~ [[:digit:]]* ]]; echo "${BASH_REMATCH[*]}")" "$2"; then
+            if has_descendant "$([[ "$pid_comm" =~ [[:digit:]]* ]]; echo "${BASH_REMATCH[*]}")" "$2"; then
                 return 0
             fi
         fi
