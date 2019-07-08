@@ -21,18 +21,18 @@ index_of () {
 
 has_descendant () {
     local children
-    children=$(ps -o pid=,comm= --ppid "$1")
+    children=$(cat /proc/"$1"/task/"$1"/children)
 
-    for pid_comm in $children; do
-        if [[ "$pid_comm" =~ $2 ]]; then
+    for pid in $children; do
+        if [[ "$(cat /proc/"$pid"/cmdline)" =~ $2 ]]; then
             return 0
         else
-            if has_descendant "$([[ "$pid_comm" =~ [[:digit:]]* ]]; echo "${BASH_REMATCH[*]}")" "$2"; then
+            if has_descendant "$pid" "$2"; then
                 return 0
             fi
         fi
     done
-    
+
     return 1
 }
 
