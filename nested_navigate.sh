@@ -21,10 +21,10 @@ index_of () {
 
 has_descendant () {
     local children
-    children=$(cat /proc/"$1"/task/"$1"/children)
+    children=$(< /proc/"$1"/task/"$1"/children)
 
     for pid in $children; do
-        if [[ "$(cat /proc/"$pid"/cmdline)" =~ $2 ]]; then
+        if [[ "$(< /proc/"$pid"/cmdline)" =~ $2 ]]; then
             return 0
         else
             if has_descendant "$pid" "$2"; then
@@ -42,36 +42,21 @@ pane_at_edge() {
     case "$direction" in
         "U") 
             coord='top'
-            op='<='
         ;;
         "D")
             coord='bottom'
-            op='>='
         ;;
         "L")
             coord='left'
-            op='<='
         ;;
         "R")
             coord='right'
-            op='>='
         ;;
     esac
 
-    cmd="#{pane_id}:#{pane_$coord}:#{?pane_active,_active_,_no_}"
-    panes=$(tmux list-panes -F "$cmd")
-    active_pane=$([[ "$panes" =~ [[:alnum:][:punct:]]*active ]]; echo "${BASH_REMATCH[*]}")
-    active_coord=$([[ "$active_pane" =~ :([[:digit:]]*): ]]; echo "${BASH_REMATCH[1]}")
-    coords=$(echo "$panes" | cut -d: -f2)
-
-    if [ "$op" == ">=" ]; then
-        test_coord=$(echo "$coords" | sort -nr | head -n1)
-        at_edge=$(( active_coord >= test_coord ? 0 : 1 ))
-    else
-        test_coord=$(echo "$coords" | sort -n | head -n1)
-        at_edge=$(( active_coord <= test_coord ? 0 : 1 ))
-    fi;
-    return $at_edge
+    panes=$(tmux list-panes -F "#{?pane_active,_active_,_no_}:#{?pane_at_$coord,0,1}" | sort | head -1)
+    
+    return "${panes##*:}"
 }
 
 # Variable setup
@@ -109,12 +94,13 @@ contains_element "$1" "${NAVIGATION_DIRECTIONS[@]}" || exit 1
 DIRECTION="$1"
 
 # Check if terminal is focused
-ACTIVE_WINDOW_ID=$(xprop -root 32x '\t$0' _NET_ACTIVE_WINDOW | cut -f 2)
+ACTIVE_WINDOW_RAW=$(xprop -root 32x '\t$0' _NET_ACTIVE_WINDOW)
+ACTIVE_WINDOW_ID="0x"${ACTIVE_WINDOW_RAW#*0x}
 
 readarray -n 3 XPROP_LINES< <(xprop -id "$ACTIVE_WINDOW_ID" WM_CLASS _NET_WM_NAME _NET_WM_PID); \
-    FOCUSED_CLASS_NAME=$([[ "${XPROP_LINES[0]}" =~ \"([^\"]+)\" ]]; echo "${BASH_REMATCH[1]}") \
-    FOCUSED_TITLE=$([[ "${XPROP_LINES[1]}" =~ \"([^\"]+)\" ]]; echo "${BASH_REMATCH[1]}") \
-    FOCUSED_PID=$([[ "${XPROP_LINES[2]}" =~ ([[:digit:]]+) ]]; echo "${BASH_REMATCH[1]}")
+    FOCUSED_CLASS_NAME=${XPROP_LINES[0]#*\"}; FOCUSED_CLASS_NAME=${FOCUSED_CLASS_NAME%%\"*};  \
+    FOCUSED_TITLE=${XPROP_LINES[1]#*\"}; FOCUSED_TITLE=${FOCUSED_TITLE%\"*};  \
+    FOCUSED_PID=${XPROP_LINES[2]##*\ }; FOCUSED_PID=${FOCUSED_PID%$'\n'}
 
 if contains_element "$FOCUSED_CLASS_NAME" "${TERMINAL_CLASS_NAMES[@]}"; then
     TERMINAL_FOCUSED=true
