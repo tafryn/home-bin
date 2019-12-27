@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 if [ ! -x "$(command -v convert)" ]; then
     i3lock -e
@@ -22,6 +22,3 @@ else
     # Lock screen displaying the image
     i3lock -e -i $HOME/.lock_image.png
 fi
-
-# Turn the screen off after a delay if still locked
-sleep 60; pgrep i3lock && xset dpms force off
