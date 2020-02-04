@@ -17,7 +17,7 @@ done
 
 POINTER_ID=${1:-10}
 
-ENABLED=$(xinput --list-props "$POINTER_ID" | grep \(300\) | awk '{print $5}')
+ENABLED=$(xinput --list-props "$POINTER_ID" | grep "Evdev Wheel Emulation (" | awk '{print $5}')
 
 function finish {
     rm /tmp/"$USER"-toggle-scrollwheel-emulation.pid
