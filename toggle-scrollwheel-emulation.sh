@@ -8,13 +8,16 @@ while getopts "H" opt; do
             arg_horizontal=1
             ;;
         *)
-            echo "Usage: $0 [options]"
+            echo "Usage: $0 [options] [pointer_id]"
             echo "Arguments:"
             echo "  -H  Enable horizontal scrolling."
             ;;
     esac
 done
 
+# Identify the desired pointer device id by examining the output of "xinput list".
+# Then either call this script with that id as the first argument or replace the 
+# default value of the following variable with it.
 POINTER_ID=${1:-10}
 
 ENABLED=$(xinput --list-props "$POINTER_ID" | grep "Evdev Wheel Emulation (" | awk '{print $5}')
@@ -43,6 +46,12 @@ fi
 
 if [[ "$ENABLED" -eq 0 ]]; then
     xinput --set-prop "$POINTER_ID" "Evdev Wheel Emulation" 1
+
+    # Chromium based applications prevent this while loop from working. They
+    # swallow all pointer device inputs when focused which prevents the call to 
+    # xinput test from receiving them. If scrolling emulation is enabled while
+    # a chromium app is focused then the only way to disable it is by calling 
+    # this script a second time.
     while read -r line; do
         if [ "$line" == "button release 1" ]; then
             xinput --set-prop "$POINTER_ID" "Evdev Wheel Emulation" 0
