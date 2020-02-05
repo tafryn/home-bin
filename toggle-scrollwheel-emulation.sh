@@ -24,6 +24,8 @@ while getopts "H" opt; do
     esac
 done
 
+shift $((OPTIND-1))
+
 # Identify the desired pointer device id by examining the output of "xinput list".
 # Then either call this script with that id as the first argument or replace the 
 # default value of the following variable with it.
