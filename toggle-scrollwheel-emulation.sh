@@ -2,15 +2,24 @@
 
 arg_horizontal=0
 
+function usage {
+    echo "Usage: $(basename -- "$0") [options] [pointer_id]"
+    echo "Arguments:"
+    echo "  -H  Enable horizontal scrolling."
+    echo ""
+    echo "The pointer_id can be discovered by looking at the output of 'xinput list'."
+    echo "Either the numeric ID or the string can be used, but the string should be"
+    echo "preferred because the numeric ID can change under certain circumstances."
+}
+
 while getopts "H" opt; do
     case $opt in
         H)
             arg_horizontal=1
             ;;
         *)
-            echo "Usage: $0 [options] [pointer_id]"
-            echo "Arguments:"
-            echo "  -H  Enable horizontal scrolling."
+            usage
+            exit
             ;;
     esac
 done
@@ -23,6 +32,8 @@ POINTER_ID=${1:-10}
 ENABLED=$(xinput --list-props "$POINTER_ID" | grep "Evdev Wheel Emulation (" | awk '{print $5}')
 
 function finish {
+    xinput --set-prop "$POINTER_ID" "Evdev Wheel Emulation" 0
+    killall xinput
     rm /tmp/"$USER"-toggle-scrollwheel-emulation.pid
 }
 
@@ -47,17 +58,9 @@ fi
 if [[ "$ENABLED" -eq 0 ]]; then
     xinput --set-prop "$POINTER_ID" "Evdev Wheel Emulation" 1
 
-    # Chromium based applications prevent this while loop from working. They
-    # swallow all pointer device inputs when focused which prevents the call to 
-    # xinput test from receiving them. If scrolling emulation is enabled while
-    # a chromium app is focused then the only way to disable it is by calling 
-    # this script a second time.
     while read -r line; do
-        if [ "$line" == "button release 1" ]; then
-            xinput --set-prop "$POINTER_ID" "Evdev Wheel Emulation" 0
+        if [ "$line" == "detail: 1" ]; then
             break
         fi
-    done < <(xinput test "$POINTER_ID")
-else
-    xinput --set-prop "$POINTER_ID" "Evdev Wheel Emulation" 0
+    done < <(xinput --test-xi2 --root | grep --line-buffered -E 'detail: 1')
 fi
