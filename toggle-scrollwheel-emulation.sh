@@ -64,5 +64,5 @@ if [[ "$ENABLED" -eq 0 ]]; then
         if [ "$line" == "detail: 1" ]; then
             break
         fi
-    done < <(xinput --test-xi2 --root | grep --line-buffered -E 'detail: 1')
+    done < <(xinput --test-xi2 --root "$POINTER_ID" | grep --line-buffered -E 'detail: 1')
 fi
