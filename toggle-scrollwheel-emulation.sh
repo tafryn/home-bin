@@ -3,11 +3,11 @@
 arg_horizontal=0
 
 function usage {
-    echo "Usage: $(basename -- "$0") [options] [pointer_id]"
+    echo "Usage: $(basename -- "$0") [options] pointer_name"
     echo "Arguments:"
     echo "  -H  Enable horizontal scrolling."
     echo ""
-    echo "The pointer_id can be discovered by looking at the output of 'xinput list'."
+    echo "The pointer_name can be discovered by looking at the output of 'xinput list'."
     echo "Either the numeric ID or the string can be used, but the string should be"
     echo "preferred because the numeric ID can change under certain circumstances."
 }
@@ -27,9 +27,7 @@ done
 shift $((OPTIND-1))
 
 # Identify the desired pointer device id by examining the output of "xinput list".
-# Then either call this script with that id as the first argument or replace the 
-# default value of the following variable with it.
-POINTER_ID=${1:-10}
+POINTER_ID=$(xinput | grep "$1" | grep -m 1 -oP '(?<=id=)[[:digit:]]*')
 
 ENABLED=$(xinput --list-props "$POINTER_ID" | grep "Evdev Wheel Emulation (" | awk '{print $5}')
 
