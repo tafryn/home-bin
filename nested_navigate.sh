@@ -110,6 +110,8 @@ fi
 TMUX_IN_FOCUSED_TERMINAL=false
 TYPE=i3
 
+shopt -s nocasematch
+
 if $TERMINAL_FOCUSED; then
     if has_descendant "$FOCUSED_PID" "tmux"; then
         TMUX_IN_FOCUSED_TERMINAL=true
