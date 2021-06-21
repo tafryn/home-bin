@@ -1,0 +1,1 @@
+/home/eatingerc/src/neovim/git-difference.sh
