@@ -36,6 +36,22 @@ has_descendant () {
     return 1
 }
 
+command_is_vim() {
+  case "${1%% *}" in
+    (vi|?vi|vim*|?vim*|view|?view|vi??*)
+      true
+      ;;
+    (*)
+      false
+      ;;
+  esac
+}
+
+pane_contains_vim() {
+  command_is_vim "$1" ||
+  command_is_vim "$2"
+}
+
 pane_at_edge() {
     direction=$1
 
@@ -54,9 +70,14 @@ pane_at_edge() {
         ;;
     esac
 
-    panes=$(tmux list-panes -F "#{?pane_active,_active_,_no_}:#{?pane_at_$coord,0,1}" | sort | head -1)
+    read -r ACTIVE TMUX_EDGE COMMAND TITLE < \
+        <(tmux list-panes -F "#{?pane_active,_active_,_no_} #{?pane_at_$coord,0,1} #{pane_current_command} #{pane_title}" | sort | head -1)
+
+    if [ "$TMUX_EDGE" -eq 0 ] && pane_contains_vim "$COMMAND" "$TITLE" && [[ "${TITLE##*#}" == *"$DIRECTION"* ]]; then
+        return false
+    fi
     
-    return "${panes##*:}"
+    return "$TMUX_EDGE"
 }
 
 # Variable setup
@@ -67,7 +88,7 @@ NAVIGATION_DIRECTIONS=(L D U R)
 
 LONG_NAVIGATION_DIRECTIONS=(left down up right)
 
-NAVIGATION_TYPES=(i3 tmux vim)
+NAVIGATION_TYPES=(i3 tmux)
 
 TERMINAL_FOCUSED=false
 
@@ -122,10 +143,6 @@ if $TERMINAL_FOCUSED; then
             TYPE=tmux
         fi
     fi
-
-	if [[ "$FOCUSED_TITLE" =~ VIM ]] && ! $VIM_CALL; then
-        TYPE=vim
-	fi
 else
 	TYPE=i3
 fi
@@ -138,15 +155,7 @@ i3)
     i3-msg -t run_command focus "${LONG_NAVIGATION_DIRECTIONS[$(index_of "$DIRECTION" "${NAVIGATION_DIRECTIONS[@]}")]}" >/dev/null
 	;;
 tmux)
-    tmux select-pane -"$(echo "$DIRECTION" | tr 'LDUR' 'LDUR')"
-	;;
-vim)
-    if $TMUX_IN_FOCUSED_TERMINAL; then
-        tmux send-keys C-"$(echo "$DIRECTION" | tr 'LDUR' 'hjkl')"
-    else
-        # xdotool keyup "$(echo "$DIRECTION" | tr 'LDUR' 'hjkl')" # qwerty shortcuts
-        xdotool keyup "$(echo "$DIRECTION" | tr 'LDUR' 'dhtn')" # dvorak shortcuts
-        xdotool key --clearmodifiers --window \""$(xdotool getactivewindow)"\" ctrl+"$(echo "$DIRECTION" | tr 'LDUR' 'hjkl')"
-    fi
+    COMMAND=$(/usr/bin/cat $HOME/.tmux/plugins/tmux-navigate/tmux-navigate.tmux | sed '1,/^exit #.*$/d; s/^ *#.*//; /^$/d')
+    tmux run-shell -b "$COMMAND $DIRECTION 'tmux select-pane -$DIRECTION' 'tmux send-keys C-w $(echo "$DIRECTION" | tr 'LDUR' 'hjkl')'"
 	;;
 esac
