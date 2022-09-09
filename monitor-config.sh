@@ -24,9 +24,9 @@ if [[ " ${CONNECTED[*]} " =~ ${BOTTOM_MON} ]]; then
 elif [[ " ${CONNECTED[*]} " =~ DP-4 ]]; then
     echo "Work/Home PLP"
     xrandr --output "$LAPTOP" --primary --pos 0x0 --mode 1920x1080 \
-        --output "$RIGHT_MON" --pos -1200x0 --mode 1920x1200 --rotate right \
-        --output "$CENTER_MON" --pos -3760x0 --mode 2560x1440 \
-        --output "$LEFT_MON" --pos -4960x0 --mode 1920x1200 --rotate left
+        --output "$LEFT_MON" --pos 1920x0 --mode 1920x1200 --rotate left \
+        --output "$CENTER_MON" --pos 3120x0 --mode 2560x1440 --refresh 120.00 \
+        --output "$RIGHT_MON" --pos 5680x0 --mode 1920x1200 --rotate right
 elif [[ " ${CONNECTED[*]} " =~ DP-0.1 ]]; then
     echo "Docked Triple P"
     xrandr --output "$LAPTOP" --primary --pos 0x0 --mode 1920x1080 \
