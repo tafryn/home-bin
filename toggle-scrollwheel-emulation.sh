@@ -27,7 +27,7 @@ done
 shift $((OPTIND-1))
 
 # Identify the desired pointer device id by examining the output of "xinput list".
-POINTER_ID=$(xinput | grep "$1" | grep -m 1 -oP '(?<=id=)[[:digit:]]*')
+POINTER_ID=$(xinput | grep "$1" | grep pointer | grep -m 1 -oP '(?<=id=)[[:digit:]]*')
 
 ENABLED=$(xinput --list-props "$POINTER_ID" | grep "Evdev Wheel Emulation (" | awk '{print $5}')
 
