@@ -38,7 +38,16 @@ has_descendant () {
 
 command_is_vim() {
   case "${1%% *}" in
-    (vi|?vi|vim*|?vim*|view|?view|vi??*)
+    (?vim" "*|*" "?vim" "*)
+      # contains neovim
+      true
+      ;;
+    (vim" "*|*" "vim" "*)
+      # contains vim
+      true
+      ;;
+    (vi|?vi|view|?view|vi??*)
+      # contains vi-ish thing
       true
       ;;
     (*)
