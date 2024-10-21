@@ -6,6 +6,8 @@ LEFT_MON=${LEFT_SCREEN:-DP-1}
 CENTER_MON=${CENTER_SCREEN:-DP-4}
 RIGHT_MON=${RIGHT_SCREEN:-DP-5}
 BOTTOM_MON=${BOTTOM_SCREEN:-DP-3}
+TOP_MON=${TOP_SCREEN:-DP-3.1}
+SIDE_MON=${SIDE_SCREEN:-DP-3.2}
 
 CONNECTED=$(xrandr | grep "[^s]connected" | awk '{print $1}')
 
@@ -14,10 +16,17 @@ xrandr --output "$LEFT_MON" --off \
     --output "$CENTER_MON" --off \
     --output "$RIGHT_MON" --off \
     --output "$BOTTOM_MON" --off \
+    --output "$TOP_MON" --off \
+    --output "$SIDE_MON" --off \
     --output "$LAPTOP" --fb 1920x1080 --panning "0x0+0+0/0x0+0+0/0/0/0/0"
 
 # Enable and configure external monitors
-if [[ " ${CONNECTED[*]} " =~ ${BOTTOM_MON} ]]; then
+if [[ " ${CONNECTED[*]} " =~ DP-3.1 ]]; then
+    echo "Work Dock"
+    xrandr --output "$LAPTOP" --primary --pos 0x0 --mode 1920x1080 \
+        --output "$TOP_MON" --auto --above "$LAPTOP" \
+        --output "$SIDE_MON" --auto --left-of "$TOP_MON" --rotate right
+elif [[ " ${CONNECTED[*]} " =~ ${BOTTOM_MON} ]]; then
     echo "Road Warrior"
     xrandr --output "$LAPTOP" --primary --pos 0x0 --mode 1920x1080 \
         --output "$BOTTOM_MON" --auto --below "$LAPTOP"
